@@ -1,3 +1,4 @@
+using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
@@ -11,7 +12,26 @@ builder.Services.AddDbContext<StoreContext>(
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<IProductRepository,ProductRepository>();
+
 var app = builder.Build();
+
+using (var scope=app.Services.CreateScope())
+{
+    var services=scope.ServiceProvider;
+    var loggerFactory=services.GetRequiredService<ILoggerFactory>();
+    try{
+        var context=services.GetRequiredService<StoreContext>();
+        await context.Database.MigrateAsync();
+        
+        //To seed Data
+      //  await StoreContextSeed.SeedAsync(context,loggerFactory);
+    }
+    catch(Exception ex){
+        var logger=loggerFactory.CreateLogger<Program>();
+        logger.LogError(ex, "An error occured during migration");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
